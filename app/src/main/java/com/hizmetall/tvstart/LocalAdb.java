@@ -33,5 +33,6 @@ final class LocalAdb implements Closeable {
  static boolean test(Context c)throws Exception{try(LocalAdb a=new LocalAdb()){a.connect(c,true);return a.command("shell:echo TVSTART_OK",false).contains("TVSTART_OK");}}
  static void reboot(Context c)throws Exception{try(LocalAdb a=new LocalAdb()){a.connect(c,false);a.command("reboot:",true);}}
  static void launch(Context c,String component)throws Exception{if(!component.matches("[A-Za-z0-9_.$]+/[A-Za-z0-9_.$]+"))throw new IOException("Uygulama bileşeni geçersiz");try(LocalAdb a=new LocalAdb()){a.connect(c,false);String v=a.command("shell:am start --user current -n "+component,false);if(v.contains("Error")||v.contains("Exception"))throw new IOException(v.trim());}}
+ static void channel(Context c,boolean up)throws Exception{try(LocalAdb a=new LocalAdb()){a.connect(c,false);a.command("shell:input keyevent "+(up?166:167),false);}}
  @Override public void close()throws IOException{sock.close();}
 }
