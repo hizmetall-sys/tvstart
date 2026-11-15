@@ -3,6 +3,8 @@ import android.app.*;
 import android.app.admin.DevicePolicyManager;
 import android.content.*;
 import android.os.SystemClock;
+import android.os.Build;
+import android.net.*;
 import java.util.Calendar;
 
 final class Engine {
@@ -22,7 +24,10 @@ final class Engine {
         a.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,next.getTimeInMillis(),p);
         prefs(c).edit().putLong("next",next.getTimeInMillis()).apply();
     }
-    static void queueOpen(Context c){if(!prefs(c).getBoolean("auto",false))return; AlarmManager a=c.getSystemService(AlarmManager.class);if(a!=null)a.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP,SystemClock.elapsedRealtime()+45000,pi(c,OPEN));}
+    static boolean internetReady(Context c){ConnectivityManager cm=c.getSystemService(ConnectivityManager.class);if(cm==null)return false;Network n=cm.getActiveNetwork();NetworkCapabilities cap=n==null?null:cm.getNetworkCapabilities(n);return cap!=null&&cap.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)&&(cap.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)||cap.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));}
+    static void queueOpen(Context c){if(!prefs(c).getBoolean("auto",false))return;prefs(c).edit().putLong("openDeadline",SystemClock.elapsedRealtime()+300000).apply();scheduleOpen(c,15000);}
+    static void scheduleOpen(Context c,long delay){AlarmManager a=c.getSystemService(AlarmManager.class);if(a==null)return;long at=SystemClock.elapsedRealtime()+delay;PendingIntent p=pi(c,OPEN);try{if(Build.VERSION.SDK_INT<31||a.canScheduleExactAlarms()){a.setExact(AlarmManager.ELAPSED_REALTIME_WAKEUP,at,p);return;}}catch(SecurityException ignored){}a.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP,at,p);}
+    static void attemptOpen(Context c){long until=prefs(c).getLong("openDeadline",0);if(until==0)return;if(SystemClock.elapsedRealtime()>until){prefs(c).edit().remove("openDeadline").apply();log(c,"Açılış süresi doldu; ağ veya ADB hazır değildi");return;}if(!internetReady(c)){log(c,"İnternet bağlantısı bekleniyor");scheduleOpen(c,15000);return;}if(openBackground(c)){prefs(c).edit().remove("openDeadline").apply();}else scheduleOpen(c,15000);}
     static boolean openBackground(Context c){if(owner(c))return open(c);try{String pkg=prefs(c).getString("package","");Intent i=c.getPackageManager().getLeanbackLaunchIntentForPackage(pkg);if(i==null)i=c.getPackageManager().getLaunchIntentForPackage(pkg);if(i==null||i.getComponent()==null)throw new Exception("Uygulama seçilmedi");LocalAdb.launch(c,i.getComponent().flattenToString());log(c,"ADB uygulama açılışı");return true;}catch(Exception e){log(c,"ADB açılış hatası: "+e.getMessage());return false;}}
     static boolean open(Context c){String pkg=prefs(c).getString("package",""); if(pkg.isEmpty()){log(c,"Uygulama seçilmedi");return false;}
         Intent i=c.getPackageManager().getLeanbackLaunchIntentForPackage(pkg);if(i==null)i=c.getPackageManager().getLaunchIntentForPackage(pkg);
