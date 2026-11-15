@@ -14,7 +14,7 @@ final class Engine {
     static boolean owner(Context c){return policy(c)!=null && policy(c).isDeviceOwnerApp(c.getPackageName());}
     static boolean ready(Context c){return owner(c)||prefs(c).getBoolean("adb",false);}
     static void log(Context c,String msg){prefs(c).edit().putString("last",new java.text.SimpleDateFormat("dd.MM HH:mm",java.util.Locale.getDefault()).format(new java.util.Date())+" • "+msg).apply();}
-    static PendingIntent pi(Context c,String action){return PendingIntent.getBroadcast(c,action.equals(REBOOT)?10:11,new Intent(c,Tasks.class).setAction(action),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);}
+    static PendingIntent pi(Context c,String action){return PendingIntent.getBroadcast(c,action.equals(REBOOT)?10:action.equals(OPEN)?11:action.equals(Care.CLEAN)?12:13,new Intent(c,Tasks.class).setAction(action),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);}
     static void schedule(Context c){
         AlarmManager a=c.getSystemService(AlarmManager.class); if(a==null)return;
         PendingIntent p=pi(c,REBOOT); a.cancel(p);
