@@ -33,5 +33,7 @@ final class LocalAdb implements Closeable {
  static boolean test(Context c)throws Exception{try(LocalAdb a=new LocalAdb()){a.connect(c,true);return a.command("shell:echo TVSTART_OK",false).contains("TVSTART_OK");}}
  static void reboot(Context c)throws Exception{try(LocalAdb a=new LocalAdb()){a.connect(c,false);a.command("reboot:",true);}}
  static void launch(Context c,String component)throws Exception{if(!component.matches("[A-Za-z0-9_.$]+/[A-Za-z0-9_.$]+"))throw new IOException("Uygulama bileşeni geçersiz");try(LocalAdb a=new LocalAdb()){a.connect(c,false);String v=a.command("shell:am start --user current -n "+component,false);if(v.contains("Error")||v.contains("Exception"))throw new IOException(v.trim());}}
+ static void trimCached(Context c)throws Exception{try(LocalAdb a=new LocalAdb()){a.connect(c,false);String v=a.command("shell:am kill-all; echo TVSTART_EXIT:$?",false);if(!v.contains("TVSTART_EXIT:0")||v.contains("Permission Denial")||v.contains("Exception"))throw new IOException("Bellek bakım komutu başarısız");}}
+ static void reconnectWifi(Context c)throws Exception{try(LocalAdb a=new LocalAdb()){a.connect(c,false);a.sock.setSoTimeout(8000);String v=a.command("shell:svc wifi disable; sleep 2; svc wifi enable; echo TVSTART_EXIT:$?",false);if(!v.contains("TVSTART_EXIT:0")||v.contains("Permission Denial")||v.contains("Exception"))throw new IOException("Wi-Fi onarım komutu başarısız");}}
  @Override public void close()throws IOException{sock.close();}
 }
